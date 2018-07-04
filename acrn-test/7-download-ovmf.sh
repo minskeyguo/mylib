@@ -26,11 +26,17 @@ OVMF_RPM=${STR_HREF::-2}
 if [ -f ${OVMF_RPM} ]; then
       echo "The rpm package exists. Use the olde one."
 else
-	wget -c ${URL_EDK2}/${OVMF_RPM}
+	wget -q -L -c ${URL_EDK2}/${OVMF_RPM}
 fi;
 [ -f ${OVMF_RPM} ] || echo "Failed to download OVMF rpm: " ${URL_EDK2}/${OVMF_RPM}
 
-rpm2cpio ${OVMF_RPM} | cpio -idvm 
+`which rpm2cpio > /dev/null`
+if [ $? -eq 0 ]; then
+	rpm2cpio ${OVMF_RPM} | cpio -idvm
+else
+	./unpack-rpm.sh ${OVMF_RPM}
+fi;
+
 
 OVMF_FD=`find ./usr | grep OVMF-pure-efi.fd`
 

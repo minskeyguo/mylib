@@ -5,13 +5,13 @@
 # create docker image for ACRN dev environment. Because we use losetup and
 # mount, "sudo -E" if running it via non-root account.
 #
-[ -z ${ACRN_MNT_VOL} ] && ACRN_MNT_VOL=/acrn-vol
-[ -z ${ACRN_HOST_DIR} ] && ACRN_HOST_DIR=/home/${USER}/vdisk
-[ -z ${ACRN_ENV_VARS} ] && ACRN_ENV_VARS=acrn-env.txt
-
 # Set env vars in case we are called by 0-all script
+[ -z ${ACRN_ENV_VARS} ] && ACRN_ENV_VARS=acrn-env.txt
 [ -f ${ACRN_ENV_VARS} ] && \
 	{ for line in `cat ${ACRN_ENV_VARS}`; do export $line; done; }
+
+[ -z ${ACRN_MNT_VOL} ] && ACRN_MNT_VOL=/acrn-vol
+[ -z ${ACRN_HOST_DIR} ] && ACRN_HOST_DIR=/home/${USER}/vdisk
 
 [ -z ${ACRN_DOCKER_NAME} ] && ACRN_DOCKER_NAME=acrn-dev
 [ -z ${ACRN_DOCKER_IMAGE} ] && ACRN_DOCKER_IMAGE=acrn-clear
@@ -23,8 +23,8 @@
 # Respect the shell environment https_proxy in Docker
 [ -z ${https_proxy} ] || PROXY_CONF="-e https_proxy="${https_proxy}
 
-PEM_SUPD=Swupd_Root.pem 
-PEM_CLEAR=ClearLinuxRoot.pem
+PEM_SUPD='Swupd_Root.pem'
+PEM_CLEAR='ClearLinuxRoot.pem'
 
 name_conflict()
 {
@@ -73,7 +73,7 @@ function download_image()
 
 	echo "Download image: " $1/$2
 
-	wget -L -c $1/$2 && xz -kd $2 || return -1
+	wget -q -L -c $1/$2 && xz -kd $2 || return -1
 }
 
 # $1: ACRN_CLEAR_OS_VERSION
@@ -87,26 +87,28 @@ function build_docker_image()
 	mount ${img_loopdev}p3 ${mnt_pt}
 
 	# Use the rootfs of clear-xxx-kvm.img.xz as a docker base image
-	tar -C ${mnt_pt} -c . | docker import - ${USER}/${ACRN_DOCKER_IMAGE}:"t"$1
+	tar -C ${mnt_pt} -c . | docker import - ${ACRN_DOCKER_IMAGE}:"t"$1
 
 	docker create --name=${ACRN_DOCKER_NAME} --net=host  ${PROXY_CONF} \
 		-v /dev:/dev/ --privileged \
 		-v ${ACRN_HOST_DIR}:${ACRN_MNT_VOL} \
-		-it ${USER}/${ACRN_DOCKER_IMAGE}:"t"$1 "/bin/bash"
+		-it ${ACRN_DOCKER_IMAGE}:"t"$1 "/bin/bash"
 
 	docker start ${ACRN_DOCKER_NAME}
-	docker exec ${ACRN_DOCKER_NAME} swupd update
+	docker exec ${ACRN_DOCKER_NAME} mkdir -p /etc/ssl/certs/
+	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_SUPD} /etc/ssl/certs/
+	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /etc/ssl/certs/
+#	docker exec ${ACRN_DOCKER_NAME} swupd update
 	docker exec ${ACRN_DOCKER_NAME} swupd bundle-add \
-		c-basic storage-utils  os-core-dev
+		c-basic storage-utils  dev-utils-dev
 	docker exec ${ACRN_DOCKER_NAME} pip3 install kconfiglib
-	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/*.pem /etc/ssl/certs/
 	docker stop ${ACRN_DOCKER_NAME}
-
-	docker commit ${ACRN_DOCKER_NAME} ${USER}/${ACRN_DOCKER_IMAGE}:$1
-	docker rmi  ${USER}/${ACRN_DOCKER_IMAGE}:"t"$1
+	docker commit ${ACRN_DOCKER_NAME} ${ACRN_DOCKER_IMAGE}:$1
+	docker rm ${ACRN_DOCKER_NAME}
+	docker rmi  ${ACRN_DOCKER_IMAGE}:"t"$1
 
 	umount ${mnt_pt}
-	losetup -D ${img_loopdev}
+	losetup -d ${img_loopdev}
 
 }
 
@@ -122,7 +124,7 @@ ACRN_CLEAR_OS_VERSION=`echo ${CLEAR_IMAGE_FNAME} | grep -ioe "[0-9]*"`
 
 build_docker_image ${ACRN_CLEAR_OS_VERSION} ${CLEAR_IMAGE_FNAME::-3}
 
-export ACRN_DOCKER_IMAGE=${USER}/${ACRN_DOCKER_IMAGE}:${ACRN_CLEAR_OS_VERSION}
+export ACRN_DOCKER_IMAGE=${ACRN_DOCKER_IMAGE}:${ACRN_CLEAR_OS_VERSION}
 
 env | grep ACRN_  > ${ACRN_HOST_DIR}/${ACRN_ENV_VARS}
 
