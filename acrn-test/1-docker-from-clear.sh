@@ -2,8 +2,7 @@
 
 #
 # This script is to download clearlinux kvm image and use it as a base to
-# create docker image for ACRN dev environment. Because we use losetup and
-# mount, "sudo -E" if running it via non-root account.
+# create docker image for ACRN dev environment.
 #
 # Set env vars in case we are called by 0-all script
 [ -z ${ACRN_ENV_VARS} ] && ACRN_ENV_VARS=acrn-env.txt
@@ -50,7 +49,7 @@ function get_url()
 		IMAGE_BASE=${ACRN_CLEAR_URL}/current
 
 		# Pattern: <a href="clear-xxxxx-kvm.img.xz">clear-xxxxx-kvm.img.xz</a>
-		HREF=`curl -L ${IMAGE_BASE} | \
+		HREF=`curl -sSL ${IMAGE_BASE} | \
 		    grep -Pioe "<a +href *= *\"?clear-[0-9]*-kvm.img.xz[^\-].*?</a>" | \
 		    grep -Pioe \"clear-[0-9]*-kvm.img.xz\"`
 		CLEAR_IMAGE_FNAME=`echo ${HREF} | sed 's/\"//g'`
@@ -58,8 +57,8 @@ function get_url()
 		       	{ echo "Failed to get ClearLinux image URL"; exit 1; }
 	fi;
 
-	curl -L ${IMAGE_BASE}/${PEM_SUPD} -o ${PEM_SUPD}
-	curl -L ${IMAGE_BASE}/${PEM_CLEAR} -o ${PEM_CLEAR}
+	curl -sSL ${IMAGE_BASE}/${PEM_SUPD} -o ${PEM_SUPD}
+	curl -sSL ${IMAGE_BASE}/${PEM_CLEAR} -o ${PEM_CLEAR}
 }
 
 # S1: URL base of clearlinux image
@@ -71,20 +70,23 @@ function download_image()
 
 	[ -r $2 ] && xz -kd $2 && { echo $2 " exists, just use it"; return 0; }
 
-	echo "Download image: " $1/$2
-
-	wget -q -L -c $1/$2 && xz -kd $2 || return -1
+	echo -n "Starting to download image : " $1/$2 "@ "
+       	date 
+	wget -q -c $1/$2 && xz -kd $2 || exit -1
+	echo -n "Completed downloading image : " $1/$2 "@ "
+       	date 
 }
 
 # $1: ACRN_CLEAR_OS_VERSION
 # $2: raw image file
 function build_docker_image()
 {
-	set -x
 	local mnt_pt=/tmp/cl_$1
 	mkdir -p ${mnt_pt}
-	img_loopdev=`losetup -f -P --show $2`
-	mount ${img_loopdev}p3 ${mnt_pt}
+
+	# The 3rd partition(/dev/sda3) is the rootfs of clearlinux kvm image.
+	# Change it only if clearlinux changed the layout in the future
+	guestmount -a $2 -m /dev/sda3 ${mnt_pt} || exit 1
 
 	# Use the rootfs of clear-xxx-kvm.img.xz as a docker base image
 	tar -C ${mnt_pt} -c . | docker import - ${ACRN_DOCKER_IMAGE}:"t"$1
@@ -99,33 +101,45 @@ function build_docker_image()
 	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_SUPD} /etc/ssl/certs/
 	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /etc/ssl/certs/
 #	docker exec ${ACRN_DOCKER_NAME} swupd update
+	echo "Call swupd bundle-add..."
+	date
 	docker exec ${ACRN_DOCKER_NAME} swupd bundle-add \
-		c-basic storage-utils  dev-utils-dev
+		c-basic storage-utils-dev  dev-utils-dev user-basic-dev
+	date
 	docker exec ${ACRN_DOCKER_NAME} pip3 install kconfiglib
 	docker stop ${ACRN_DOCKER_NAME}
 	docker commit ${ACRN_DOCKER_NAME} ${ACRN_DOCKER_IMAGE}:$1
 	docker rm ${ACRN_DOCKER_NAME}
 	docker rmi  ${ACRN_DOCKER_IMAGE}:"t"$1
 
-	umount ${mnt_pt}
-	losetup -d ${img_loopdev}
-
+	guestunmount ${mnt_pt}
 }
+
+[ -z ${ACRN_TRACE_SHELL_ENABLE} ] || set -x
 
 # Create the dir if doesn't exsit
 mkdir -p ${ACRN_HOST_DIR}
 
 name_conflict
 [ $? -ne 0 ] && exit 1
+
+# Get URL and set ACRN_CLEAR_OS_VERSION if it is ""
 get_url ${ACRN_CLEAR_OS_VERSION}
+
 download_image  ${IMAGE_BASE} ${CLEAR_IMAGE_FNAME}
 
 ACRN_CLEAR_OS_VERSION=`echo ${CLEAR_IMAGE_FNAME} | grep -ioe "[0-9]*"`
 
-build_docker_image ${ACRN_CLEAR_OS_VERSION} ${CLEAR_IMAGE_FNAME::-3}
+IMAGE=${ACRN_DOCKER_IMAGE}:${ACRN_CLEAR_OS_VERSION}
 
-export ACRN_DOCKER_IMAGE=${ACRN_DOCKER_IMAGE}:${ACRN_CLEAR_OS_VERSION}
+DOCKER_TAG=`docker images -q ${IMAGE} --format={{.Repository}}:{{.Tag}}`
+
+[ ${DOCKER_TAG}X != "${IMAGE}"X ] && \
+	build_docker_image ${ACRN_CLEAR_OS_VERSION} ${CLEAR_IMAGE_FNAME::-3}
+
+export ACRN_DOCKER_IMAGE=${IMAGE}
 
 env | grep ACRN_  > ${ACRN_HOST_DIR}/${ACRN_ENV_VARS}
+chmod 0666 ${ACRN_HOST_DIR}/${ACRN_ENV_VARS}
 
 exit 0;
