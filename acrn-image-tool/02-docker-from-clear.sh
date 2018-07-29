@@ -29,7 +29,7 @@ name_conflict()
 {
 	RET=`docker ps -a -q --format='{{.Names}}' | grep ${ACRN_DOCKER_NAME}`
 	if [ ${RET}X == ${ACRN_DOCKER_NAME}X ]; then
-		echo "Container exsits or name conflict: "${ACRN_DOCKER_NAME}; 
+		echo -n -e  "The Docker \"${ACRN_DOCKER_NAME}\" exists; "
 		return 1
 	fi;
 	return 0;
@@ -95,20 +95,36 @@ function build_docker_image()
 		-it ${ACRN_DOCKER_IMAGE}:"t"$1 "/bin/bash"
 
 	docker start ${ACRN_DOCKER_NAME}
-	docker exec ${ACRN_DOCKER_NAME} mkdir -p /etc/ssl/certs/
-	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_SUPD} /etc/ssl/certs/
-	docker exec ${ACRN_DOCKER_NAME} cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /etc/ssl/certs/
+#	docker exec ${ACRN_DOCKER_NAME} sh -c "mkdir -p /etc/ssl/certs/"
+#	docker exec ${ACRN_DOCKER_NAME} sh -c "cp ${ACRN_MNT_VOL}/${PEM_SUPD} /etc/ssl/certs/"
+#	docker exec ${ACRN_DOCKER_NAME} sh -c "cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /etc/ssl/certs/"
 
 #	docker exec ${ACRN_DOCKER_NAME} swupd update
 	echo -n "swupd bundle-add start @"; date
-	docker exec ${ACRN_DOCKER_NAME} swupd bundle-add \
-		c-basic storage-utils-dev  dev-utils-dev user-basic-dev > /dev/null 2>&1
+	docker exec ${ACRN_DOCKER_NAME} sh -c "swupd bundle-add -n \
+		--skip-diskspace-check \
+		c-basic storage-utils-dev  dev-utils-dev user-basic-dev > /dev/null" \
+		|| { guestunmount ${mnt_pt}; exit -1; }
+
 	echo -n "swupd bundle-add end @"; date
-	docker exec ${ACRN_DOCKER_NAME} pip3 install kconfiglib
+	if [ -n ${ACRN_PIP_SOURCE} ]; then
+		base=`echo ${ACRN_PIP_SOURCE} | grep -Pioe "https://.*?/" -`
+		host=${base:8:-1}
+		src_args=" -i ${ACRN_PIP_SOURCE} --trusted-host ${host}"
+	else
+		unset ACRN_PIP_SOURCE
+	fi;
+
+	docker exec ${ACRN_DOCKER_NAME} sh -c \
+		"pip3 install --timeout=180 ${src_args} kconfiglib" \
+		|| { guestunmount ${mnt_pt}; exit -1; }
 
 	for pkg in `ls linux-firmware-*`; do
-	   docker exec ${ACRN_DOCKER_NAME} ${ACRN_MNT_VOL}/9-unpack-rpm.sh "${ACRN_MNT_VOL}/${pkg}" "/"
+	   docker exec ${ACRN_DOCKER_NAME} ${ACRN_MNT_VOL}/10-unpack-rpm.sh "${ACRN_MNT_VOL}/${pkg}" "/"
 	done;
+
+	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.name ${ACRN_GIT_USER_NAME}"
+	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.email ${ACRN_GIT_USER_EMAIL}"
 
 	docker stop ${ACRN_DOCKER_NAME}
 	docker commit ${ACRN_DOCKER_NAME} ${ACRN_DOCKER_IMAGE}:$1
@@ -138,7 +154,9 @@ function download_firmware() {
 mkdir -p ${ACRN_HOST_DIR}
 
 name_conflict
-[ $? -ne 0 ] && exit 1
+[ $? -ne 0 ] && 
+	{ echo -n "Use \"docker stop/rm ${ACRN_DOCKER_NAME}\" to remove the old";
+	  echo " or define ACRN_DOCKER_NAME to other value"; exit 1; }
 
 # Get URL and set ACRN_CLEAR_OS_VERSION if it is ""
 get_url ${ACRN_CLEAR_OS_VERSION}

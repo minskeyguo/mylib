@@ -21,20 +21,20 @@ build_sos_kernel() {
         cd ${ACRN_SOS_DIR} || return 1
 
         # add_to_makefile
-        grep "export INSTALL_PATH=\$(PWD)/out" Makefile 1>/dev/null
+        found=`grep "EXTRAVERSION =-acrn" Makefile`
 
 	# If we add it before, don't repeat it
-        if [ $? -ne 0 ]; then
+        if [ -z "${found}" ]; then
 	sed -i '/^EXTRAVERSION =.*/  s/$/-acrn/' Makefile
-        sed -i '1i PWD=$(shell pwd)\nEXTRAVERSION=-acrn\n' Makefile
+        sed -i '1i PWD=$(shell pwd)\n' Makefile
         sed -i '2a export INSTALL_PATH=$(PWD)/out' Makefile
         sed -i '3a export INSTALL_MOD_PATH=$(PWD)/out' Makefile
 #        sed -i '4a export CCACHE_DISABLE=1' Makefile
 
         # remove firmware compiling in kconfig
-#        sed -i '/CONFIG_EXTRA_FIRMWARE/'d  .config
-#        sed -i '1i   CONFIG_EXTRA_FIRMWARE=""'  .config
-#        sed -i '/CONFIG_EXTRA_FIRMWARE_DIR/'d .config
+        sed -i '/CONFIG_EXTRA_FIRMWARE/'d  .config
+        sed -i '1i   CONFIG_EXTRA_FIRMWARE=""'  .config
+        sed -i '/CONFIG_EXTRA_FIRMWARE_DIR/'d .config
 
 	# Build USB keyboard and mouse so that users can work in the console
         sed -i 's/^CONFIG_USB_HID[ =].*$/CONFIG_USB_HID=m\nCONFIG_USB_KBD=m\nCONFIG_USB_MOUSE=m\n/' .config
@@ -46,7 +46,9 @@ build_sos_kernel() {
         fi;
 
         # accept default options (no firmware build)
-        (echo -e "n\nn\nn\nn\nn\n") | make 
+	yes "" | make oldconfig
+
+	make 
         make modules
 	make bzImage
         make modules_install

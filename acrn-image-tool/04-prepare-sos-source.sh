@@ -50,21 +50,41 @@ get_base_kernel_version() {
 	SOS_DIR=`echo ${KERNEL_XZ/.tar.xz/}`
 }
 
-# wget is faster than git clone stable kernel. If you already has stable
-# tree, git checkout it to replace the func
-wget_kernel() {
-	[ -d ${SOS_DIR} ] && { echo "SOS source exsits, use the old"; return 0; }
-	
+# wget is faster than git clone stable kernel if you are not in China. Still,
+# Prefer git clone to wget tarball from www.kernel.org
+wget_or_gitclone_kernel() {
+
+	if [ ! -r ${KERNEL_XZ} ] && [ -n ${ACRN_LINUX_STABLE_GIT} ]; then
+		LINUX_VERSION=${SOS_DIR:6}
+		CUR_BRANCH=linux-v${LINUX_VERSION}
+		git clone ${ACRN_LINUX_STABLE_GIT} ${SOS_DIR} ||
+			{ echo "Failed to git clone ${ACRN_LINUX_STABLE_GIT}"; exit 1; }
+		cd ${SOS_DIR};
+
+		# checkout the tag specified in clearlinux RPM_SPEC
+		git checkout "v${LINUX_VERSION}" ||
+		    { echo -n "${ACRN_LINUX_STABLE_GIT} doesn't have v${LINUX_VERSION},";
+		      echo -n "try update your git and then re-run the scripts"; exit 1; }
+
+		# create a branch with this linux tag, say v4.14.56
+		git branch ${CUR_BRANCH}  && git checkout ${CUR_BRANCH} && return 0;
+	fi;
+
+	# Delete the dir if git clone failed, and then try get xz tarball
+	cd ${ACRN_MNT_VOL}; rm -fr ${SOS_DIR}
+
 	if [ -r ${KERNEL_XZ} ]; then
 		echo ${KERNEL_XZ}" exsits, will use it instead of download it again"
 	else
-		echo "Downloading kernel: "${URL_STABLE_KERNEL}
-		wget -c -q ${URL_STABLE_KERNEL}
+		echo "Downloading(wget) kernel: "${URL_STABLE_KERNEL}
+		wget -c -q ${URL_STABLE_KERNEL} || { echo "wget failed"; exit 1; }
 	fi;
-	
-	[ $? -ne 0 ] && return 1
-	tar xJf ${KERNEL_XZ} 
-	[ $? -ne 0 ] && return 1
+
+	tar xJf ${KERNEL_XZ} || { echo "Failed to uncompress ${KERNEL_XZ}"; exit 1; }
+	cd ${SOS_DIR};
+	git init . && git add * && git commit -a -m "linux stable kernel ${SOS_DIR}"
+	[ $? -ne 0 ] && { echo "Failed to init git by ${KERNEL_XZ}"; exit 1; }
+	cd ..
 	return 0
 }
 
@@ -85,7 +105,7 @@ apply_patches() {
 # we don't update it (git pull), instead assume that you want to use the
 # old one.  You can update it before runnoing the script
 if [ -d ./linux-pk414 ]; then
-        echo "linux-pk414 exsits.  Use the old git"
+        echo "linux-pk414 exsits. Use the exsiting git"
 else
         echo "git clone linx-pk414"
         git clone https://github.com/clearlinux-pkgs/linux-pk414
@@ -95,15 +115,20 @@ fi;
 [ ${SOS_DIR}X == "auto"X ] && get_base_kernel_version
 
 # use the existing SOS kernel base or donwload it
-[ -d ${SOS_DIR} ] ||  wget_kernel 
-[ $? -ne 0 ] && exit 1;
+if [ -d ${SOS_DIR} ]; then
+	echo "SOS source exsits, use the old";
+else
+       	wget_or_gitclone_kernel
+	[ $? -ne 0 ] && { echo "Remove the ${SOS_DIR} before re-run scripts again"; exit 1; }
 
-# apply the patches in pk414 repo to SOS kernel
-[ -d ${SOS_DIR} ] && apply_patches
+	cd ${SOS_DIR}
+	# apply the patches in pk414 repo to SOS kernel
+	git am ../linux-pk414/*.patch || { echo "Failed to apply linux-pk414 patches to ${SOS_DIR}"; exit 1; }
+	mkdir -p firmware
+	cp -a /lib/firmware/intel-ucode firmware
+	cp -a /lib/firmware/i915 firmware
+fi;
 
-mkdir -p ${SOS_DIR}/firmware
-cp -a /lib/firmware/intel-ucode ${SOS_DIR}/firmware
-cp -a /lib/firmware/i915 ${SOS_DIR}/firmware
 
 # export it in Docker and indicate that SOS source is Ok
 export ACRN_SOS_DIR=${SOS_DIR}

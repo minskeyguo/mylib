@@ -41,7 +41,8 @@ has_docker_group
 if [ $? -eq 0 ]; then
 	echo -n "Need to create a docker group by: \"groupadd docker\", "
 	echo -n "and then add" ${CURR_USER} "into the group by:"
-	echo -e "  \"usermod -a ${CURR_USER} -G docker\""
+	echo -e "  \"usermod -a ${CURR_USER} -G docker\". "
+	echo "You need to logout and then login to enable the group changes"
 	exit 1
 fi;
 
@@ -50,6 +51,8 @@ group_in_list "docker" "${group_list}"
 if [ $? -eq 0 ]; then
 	echo -n "Need to add" \"${CURR_USER}\" "into group" \"docker\" "by:"
 	echo -e "  \"usermod -a ${CURR_USER} -G docker\""
+	echo "You need to logout and then login to enable the group changes"
+	exit 1
 fi;
 
 # ensure current user is in kvm group
@@ -57,5 +60,11 @@ group_in_list ${kvm_group} "${group_list}"
 if [ $? -eq 0 ]; then
 	echo -n "Need to add" \"${CURR_USER}\" "into group" \"${kvm_group}\" "by:"
 	echo -e "  \"usermod -a ${CURR_USER} -G ${kvm_group}\""
+	echo "You need to logout and then login to enable the group changes"
+	exit 1
 fi;
 
+# kernel_readable_by_user
+for vmlinuz in `ls /boot/vmlinuz*`; do
+	[ -r $vmlinuz ] || { echo "\"$CURR_USER\" lack of read permission for $vmlinuz"; exit 1; }
+done;

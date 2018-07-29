@@ -96,9 +96,22 @@ download_image() {
 	 echo "ACRN_DISK_IMAGE=${ACRN_DISK_IMAGE}" >> ${ACRN_MNT_VOL}/${ACRN_ENV_VARS}; \
 	 exit 0; }
 
-echo "Using dd/fdisk to create an empty disk image of "${ACRN_DISK_SIZE}
-dd if=/dev/zero of=${ACRN_DISK_IMAGE} bs=1M count=${ACRN_DISK_SIZE}
-[ $? -ne 0 ] && { echo "Failed to dd/create disk image"; exit 1; }
+if [ -z ${ACRN_DISK_SPARSE_IMAGE} ] || [ ${ACRN_DISK_SPARSE_IMAGE} -ne 1 ]; then
+	sparse=0
+else
+	sparse=1
+	sparse_str="sparse"
+fi;
+
+echo "Using dd/fdisk to create an empty disk ${sparse_str} image of ${ACRN_DISK_SIZE}"
+
+if [ ${sparse} -eq 1 ]; then
+	dd if=/dev/zero of=${ACRN_DISK_IMAGE} bs=1M count=0  seek=${ACRN_DISK_SIZE}
+else
+	dd if=/dev/zero of=${ACRN_DISK_IMAGE} bs=1M count=${ACRN_DISK_SIZE}
+fi;
+
+[ $? -ne 0 ] && { echo "Failed to dd/create ${sparse_str} disk image"; exit 1; }
 
 # Get SOS kernel bzImage and modules path
 BZ_FPATH=`ls ${PATH_SOS_OUT}/* | grep -v "*.old" | grep vmlinuz`
@@ -111,6 +124,7 @@ let idx=`expr index ${BZ_NAME} "-"`
 MODS_NAME=${BZ_NAME:${idx}}
 
 MODS_FPATH=${BZ_DIR}/"lib/modules/"${MODS_NAME}
+[ ! -d ${MODS_FPATH} ] && [ -d "${MODS_FPATH}+" ] && MODS_FPATH="${MODS_FPATH}+";
 [ ! -d ${MODS_FPATH} ] && { echo "Failed to get linux modules: "${MODS_FPATH}; exit 1; }
 
 # download Clearlinux KVM image if not exits
@@ -123,9 +137,9 @@ mount ${CLR_DEV_LOOP}p3 ./cl_p3
 
 # Caculate the size of rootfs and make sure partition room is engouth to hold it
 read -a SIZE <<< `du -s ./cl_p3`
-COUNT=`expr SIZE / 1000`
-echo "ClearLinux rootfs size: "${SIZE}MB
-[ ${COUNT} -gt ${ACRN_DISK_P3} ] && ACRN_DISK_P3=${COUNT}
+COUNT=`expr ${SIZE} / 1000 + 1`
+echo "ClearLinux rootfs size: "${COUNT}MB
+[ ${COUNT} -gt `expr ${ACRN_DISK_P3} / 1` ] && ACRN_DISK_P3=${COUNT}
 
 
 fdisk_img ${ACRN_DISK_IMAGE}
@@ -160,7 +174,7 @@ cp ${BZ_FPATH} ./img_p1/EFI/org.clearlinux/
 cp -R ${MODS_FPATH} ./img_p3/lib/modules/
 
 cp ${PATH_HV_OUT}/devicemodel/acrn-dm  ./img_p3/usr/bin/
-cp ${PATH_HV_OUT}/tools/*  ./img_p3/usr/bin/
+cp -r ${PATH_HV_OUT}/tools/*  ./img_p3/usr/bin/
 
 cp /usr/lib64/libuuid.so.1      ./img_p3/usr/lib64/
 cp /usr/lib64/libpciaccess.so.0 ./img_p3/usr/lib64/
@@ -210,9 +224,9 @@ losetup -d ${CLR_DEV_LOOP}
 
 rmdir ./cl_p1 ./cl_p3 ./img_p1 ./img_p3
 
-export ACRN_DISK_IMAGE=${ACRN_DISK_IMAGE}
+echo -e "Boot \033[31m ${ACRN_DISK_IMAGE} \033[0m in qemu/kvm, or simics. Or dd it into hard/USB disk to boot"
 
-echo -e "\033[31m ${ACRN_DISK_IMAGE} is to boot in qemu/kvm, or simics. Or dd into hard/USB disk to boot\033[0m"
+chmod 666 ${ACRN_DISK_IMAGE}
 
 env | grep ACRN > ${ACRN_MNT_VOL}/${ACRN_ENV_VARS}
 
