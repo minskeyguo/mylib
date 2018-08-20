@@ -11,6 +11,7 @@ cd ${ACRN_MNT_VOL} || { echo "Failed to cd "${ACRN_MNT_VOL}; exit -1; }
 [ -z ${ACRN_HV_DIR} ] && ACRN_HV_DIR=acrn-hypervisor
 
 [ -z ${ACRN_TRACE_SHELL_ENABLE} ] || set -x
+
 #
 # $1 -- the dir where SOS vmlinuz and modules are (set INSTALL_PATH  and
 #       INSTALL_MOD_PATH to the dir when building Linux kernel)
@@ -36,6 +37,12 @@ else
 fi;
 
 
+# A list of the prefix of rpm package name. ClearLinux KVM image doesn't
+# install those packages, so we install them by ourselves
+extra_rpm_package=("e2fsprogs-extras-" "dosfstools-bin-")
+
+
+
 # the name fo disk image which will be created at last. used to boot
 # in UEFI OVMF
 [ -z ${ACRN_DISK_IMAGE} ] && ACRN_DISK_IMAGE=acrn_vdisk_all.img
@@ -52,6 +59,8 @@ IMAGE_RAW=clear-${VERSION_ID}-kvm.img
 IMAGE_XZ=clear-${VERSION_ID}-kvm.img.xz
 FILE_SHA1=${IMAGE_XZ}-SHA512SUMS
 FILE_SIG=${IMAGE_XZ}-SHA512SUMS.sig
+
+export ACRN_DISK_IMAGE="${ACRN_DISK_IMAGE}_clear${VERSION_ID}.img"
 
 # Fdisk a disk image to 4 partition(ESP, swap, rootfs, user)
 #       $1 --- the name of disk image
@@ -122,10 +131,25 @@ BZ_DIR=`dirname ${BZ_FPATH}`
 
 let idx=`expr index ${BZ_NAME} "-"` 
 MODS_NAME=${BZ_NAME:${idx}}
+let len=`echo $MODS_NAME | wc -L`
 
-MODS_FPATH=${BZ_DIR}/"lib/modules/"${MODS_NAME}
-[ ! -d ${MODS_FPATH} ] && [ -d "${MODS_FPATH}+" ] && MODS_FPATH="${MODS_FPATH}+";
-[ ! -d ${MODS_FPATH} ] && { echo "Failed to get linux modules: "${MODS_FPATH}; exit 1; }
+MODS_FPATH=${BZ_DIR}/"lib/modules/"
+
+if false; then
+let found=0
+for dir in `ls ${MODS_FPATH}`; do
+	echo "dir=${dir}"
+	echo "mods_name=${MODS_NAME}"
+	echo "sub_str: ${dir:0:$len}"
+
+        if [ "${dir}" == "${MODS_NAME}"* ]; then
+		echo "equal"
+	       	found=1
+	fi;
+	echo ${found}
+done;
+[ ${found} -eq 0 ] && { echo "Failed to get linux modules: "${MODS_FPATH}; exit 1; }
+fi;
 
 # download Clearlinux KVM image if not exits
 download_image ${URL_BASE}
@@ -171,7 +195,7 @@ cp ${PATH_HV_OUT}/hypervisor/acrn.efi ./img_p1/EFI/BOOT/BOOTX64.EFI
 
 cp ${BZ_FPATH} ./img_p1/EFI/org.clearlinux/
 
-cp -R ${MODS_FPATH} ./img_p3/lib/modules/
+cp -R ${MODS_FPATH}/*  ./img_p3/lib/modules/
 
 cp ${PATH_HV_OUT}/devicemodel/acrn-dm  ./img_p3/usr/bin/
 cp -r ${PATH_HV_OUT}/tools/*  ./img_p3/usr/bin/
@@ -184,6 +208,7 @@ cp /usr/lib64/libcrypto.so.1.0.0        ./img_p3/usr/lib64/
 # copy launch_uos_script.sh which is used to start guest OS
 mkdir -p ./img_p3/root/
 cp -R ${LAUNCH_UOS_SCRIPT} ./img_p3/root/
+cp ./${ACRN_HV_DIR}/devicemodel/bios/VSBL* ./img_p3/root/
 
 # remove the colorful prompt and terminal, it blinks on uart shell
 touch ./img_p3/root/.dircolors
@@ -197,6 +222,14 @@ cat <<EOF>./img_p3/etc/passwd
 root::0:0:root:/root:/bin/bash
 EOF
 
+
+# permit root ssh without password
+mkdir -p ./img_p3/etc/ssh/
+cat <<EOF>./img_p3/etc/ssh/sshd_config
+PermitRootLogin yes
+PermitEmptyPasswords yes
+EOF
+
 # create loader.conf
 cat <<EOF>./img_p1/loader/loader.conf
 default acrn
@@ -207,10 +240,22 @@ EOF
 cat <<EOF>./img_p1/loader/entries/acrn.conf
 title "ACRN Hypervisor"
 linux  /EFI/org.clearlinux/${BZ_NAME}
-options  maxcpus=1 console=tty0 console=ttyS0 root=PARTUUID=${UUID_ROOT} rw \
+options  console=tty0 console=ttyS0 root=PARTUUID=${UUID_ROOT} rw \
 rootwait ignore_loglevel no_timer_check consoleblank=0 \
 cma=2560M@0x100000000-0
 EOF
+
+for prefix in  ${extra_rpm_package[*]}; do
+	for pkg in  `grep -Pioe "<a href=\"$prefix.*\.rpm\">" ${ACRN_CLEAR_RPM_PAGE} \
+                | grep -Pioe $prefix.*\.rpm`; do
+
+                [ -f ${pkg} ] && { echo "${pkg} exists in current dir"; continue; }
+                echo "downloading ${ACRN_CLEAR_RPM_URL}/$pkg"
+                wget -qcL ${ACRN_CLEAR_RPM_URL}/$pkg || { echo "Failed to download $pkg"; exit 1; }
+		./10-unpack-rpm.sh $pkg ./img_p3
+        done;
+done;
+
 
 sync;
 

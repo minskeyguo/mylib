@@ -23,8 +23,6 @@ cd ${ACRN_MNT_VOL};
 # All works will be done in this folder. We "git clone" all ACRN repositories,
 # compile, and then build disk image there. Make sure that it has 30GB space
 
-
-
 # The dirname of Linux kernel source for SOS.
 # "auto" tells the script to use latest kernel based on clearlinux linux-pk414.
 # The rpmbuild spec file in clearlinux linux-pkt414 repo indicates the kenrel 
@@ -84,22 +82,12 @@ wget_or_gitclone_kernel() {
 	cd ${SOS_DIR};
 	git init . && git add * && git commit -a -m "linux stable kernel ${SOS_DIR}"
 	[ $? -ne 0 ] && { echo "Failed to init git by ${KERNEL_XZ}"; exit 1; }
-	cd ..
+
+
+
 	return 0
 }
 
-
-# patch stable kernel with ACRN sos patch set
-apply_patches() {
-        cd ${SOS_DIR} || return 1
-        for i in `ls ../linux-pk414/*.patch`; do patch -p1 <$i; done;
-        if [ $? -eq 0 ]; then
-                echo "Completed patching !"
-        else
-                echo "Failed to apply patches or already patched ???"
-        fi;
-        cp ../linux-pk414/config-pk414-sos  .config
-}
 
 # clone pkt414 kenrel, which hosts the SOS kernel patches. If it exists,
 # we don't update it (git pull), instead assume that you want to use the
@@ -119,14 +107,22 @@ if [ -d ${SOS_DIR} ]; then
 	echo "SOS source exsits, use the old";
 else
        	wget_or_gitclone_kernel
+
 	[ $? -ne 0 ] && { echo "Remove the ${SOS_DIR} before re-run scripts again"; exit 1; }
 
-	cd ${SOS_DIR}
+        cp ../linux-pk414/config-pk414-sos  .config || 
+		{ echo "Failed to copy SOS kconfig from clear-pk414 git"; exit 1; }
+
 	# apply the patches in pk414 repo to SOS kernel
 	git am ../linux-pk414/*.patch || { echo "Failed to apply linux-pk414 patches to ${SOS_DIR}"; exit 1; }
 	mkdir -p firmware
 	cp -a /lib/firmware/intel-ucode firmware
 	cp -a /lib/firmware/i915 firmware
+
+	for pt in `ls ../sos*.patch`; do
+		git am $pt || { echo "Failed to apply patch $pt"; exit 1; }
+	done;
+
 fi;
 
 

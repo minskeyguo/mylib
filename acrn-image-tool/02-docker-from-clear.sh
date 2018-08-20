@@ -28,7 +28,7 @@ PEM_CLEAR='ClearLinuxRoot.pem'
 name_conflict()
 {
 	RET=`docker ps -a -q --format='{{.Names}}' | grep ${ACRN_DOCKER_NAME}`
-	if [ ${RET}X == ${ACRN_DOCKER_NAME}X ]; then
+	if [ "${RET}X" == "${ACRN_DOCKER_NAME}X" ]; then
 		echo -n -e  "The Docker \"${ACRN_DOCKER_NAME}\" exists; "
 		return 1
 	fi;
@@ -40,7 +40,7 @@ name_conflict()
 function get_url()
 {
 	### CLEAR_IMAGE_FNAME=clear-xxxxx-kvm.img.xz
-	if [ $1X != "X" ]; then
+	if [ "$1X" != "X" ]; then
 		CLEAR_IMAGE_FNAME=clear-${ACRN_CLEAR_OS_VERSION}-kvm.img.xz
 		IMAGE_BASE=${ACRN_CLEAR_URL}/releases/$1/clear/
 	else
@@ -53,7 +53,7 @@ function get_url()
 		    grep -Pioe "<a +href *= *\"?clear-[0-9]*-kvm.img.xz[^\-].*?</a>" | \
 		    grep -Pioe \"clear-[0-9]*-kvm.img.xz\"`
 		CLEAR_IMAGE_FNAME=`echo ${HREF} | sed 's/\"//g'`
-		[ -z ${CLEAR_IMAGE_FNAME} ] && \
+		[ -z "${CLEAR_IMAGE_FNAME}" ] && \
 		       	{ echo "Failed to get ClearLinux image URL"; exit 1; }
 	fi;
 
@@ -96,12 +96,14 @@ function build_docker_image()
 
 	docker start ${ACRN_DOCKER_NAME}
 #	docker exec ${ACRN_DOCKER_NAME} sh -c "mkdir -p /etc/ssl/certs/"
-#	docker exec ${ACRN_DOCKER_NAME} sh -c "cp ${ACRN_MNT_VOL}/${PEM_SUPD} /etc/ssl/certs/"
-#	docker exec ${ACRN_DOCKER_NAME} sh -c "cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /etc/ssl/certs/"
+	docker exec ${ACRN_DOCKER_NAME} sh -c \
+		"cp ${ACRN_MNT_VOL}/${PEM_SUPD} /usr/share/clar/update-ca/ && \
+		cp ${ACRN_MNT_VOL}/${PEM_CLEAR} /usr/share/clar/update-ca/" || \
+		{ skip_cert="-n"; echo "Failed to copy PEM certs into clearlinux"; }
 
 #	docker exec ${ACRN_DOCKER_NAME} swupd update
 	echo -n "swupd bundle-add start @"; date
-	docker exec ${ACRN_DOCKER_NAME} sh -c "swupd bundle-add -n \
+	docker exec ${ACRN_DOCKER_NAME} sh -c "swupd bundle-add $skip_cert \
 		--skip-diskspace-check \
 		c-basic storage-utils-dev  dev-utils-dev user-basic-dev > /dev/null" \
 		|| { guestunmount ${mnt_pt}; exit -1; }
@@ -119,12 +121,15 @@ function build_docker_image()
 		"pip3 install --timeout=180 ${src_args} kconfiglib" \
 		|| { guestunmount ${mnt_pt}; exit -1; }
 
+	docker exec ${ACRN_DOCKER_NAME} sh -c "mkdir -p ${ACRN_MNT_VOL}/firmware" || exit 1;
 	for pkg in `ls linux-firmware-*`; do
-	   docker exec ${ACRN_DOCKER_NAME} ${ACRN_MNT_VOL}/10-unpack-rpm.sh "${ACRN_MNT_VOL}/${pkg}" "/"
+	   docker exec ${ACRN_DOCKER_NAME} sh -c \
+		   "${ACRN_MNT_VOL}/10-unpack-rpm.sh ${ACRN_MNT_VOL}/${pkg} ${ACRN_MNT_VOL}/firmware" || exit 1;
 	done;
+	docker exec ${ACRN_DOCKER_NAME} sh -c "cp -fr ${ACRN_MNT_VOL}/firmware/* /"  || exit 1;
 
-	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.name ${ACRN_GIT_USER_NAME}"
-	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.email ${ACRN_GIT_USER_EMAIL}"
+	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.name ${ACRN_GIT_USER_NAME}" || exit 1;
+	docker exec ${ACRN_DOCKER_NAME} sh -c "git config --global user.email ${ACRN_GIT_USER_EMAIL}" || exit 1;
 
 	docker stop ${ACRN_DOCKER_NAME}
 	docker commit ${ACRN_DOCKER_NAME} ${ACRN_DOCKER_IMAGE}:$1
@@ -138,8 +143,14 @@ function build_docker_image()
 function download_firmware() {
 	local URL="https://download.clearlinux.org/releases/$1/clear/x86_64/os/Packages/"
 
+	echo "Download the page: ${URL} ..."
+
+	export ACRN_CLEAR_RPM_PAGE="clear_package_$$.html"
+	export ACRN_CLEAR_RPM_URL=${URL}
+        curl -sSL ${URL} -o ${ACRN_CLEAR_RPM_PAGE} || { echo "Failed to get page: $URL"; exit 1; }
+
 	echo -n "begin to download firmware from clearlinux-"$1 "@"; date;
-        for pkg in `curl -sSL ${URL} | grep -Pioe "<a href=\"linux-firmware-.*\.rpm\">" \
+        for pkg in `cat ${ACRN_CLEAR_RPM_PAGE} | grep -Pioe "<a href=\"linux-firmware-.*\.rpm\">" \
 		| grep -Pioe linux-firmware-.*\.rpm`;  do
 		[ -f ${pkg} ] && { echo "${pkg} exists in current dir"; continue; }
 		echo "downloading ${URL}/$pkg"
@@ -150,7 +161,7 @@ function download_firmware() {
 
 [ -z ${ACRN_TRACE_SHELL_ENABLE} ] || set -x
 
-# Create the dir if doesn't exsit
+# Create the dir if does not exsit
 mkdir -p ${ACRN_HOST_DIR}
 
 name_conflict
