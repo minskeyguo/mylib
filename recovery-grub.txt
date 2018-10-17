@@ -1,0 +1,29 @@
+
+sudo mount /dev/sdXY /mnt   # rootfs of ubuntu
+
+sudo mount --bind /dev /mnt/dev &&
+sudo mount --bind /dev/pts /mnt/dev/pts &&
+sudo mount --bind /proc /mnt/proc &&
+sudo mount --bind /sys /mnt/sys
+
+sudo chroot /mnt
+
+mount /dev/sda1 /boot/efi  # mount ESP partition
+
+
+mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+rm /sys/firmware/efi/efivars/dump-*
+
+grub-install /dev/sdX
+grub-install --recheck /dev/sdX
+
+update-grub
+
+exit 
+sudo umount /mnt/sys 
+sudo umount /mnt/proc 
+sudo umount /mnt/dev/pts
+sudo umount /mnt/dev
+sudo umount /mnt
+Shut down and turn your computer back on, and you will be met with the default Grub2 screen.
+
