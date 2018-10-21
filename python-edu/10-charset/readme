@@ -1,0 +1,5 @@
+
+1. ASCII 0 ~ 127,  7-bit coding, 8-bit width(bit 7 for odd-even pair)  ISO 646;
+2. unicode,  16-bit coding, 16-bit width;   0 ~ 127 is ASCII;  chinese/japanese/kerean 0x3000 ~ 0x9fff;
+3. GBK - Chinese standard, 16-bit width; 0x8140 ~ 0xfefe; ISO 10646.1
+

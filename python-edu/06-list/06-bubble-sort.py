@@ -14,5 +14,5 @@ for i in range(len(nums) - 1):
 
 print(nums)
 
-# pratice:  implement the sort algorithm as a func
+# exercise:  implement the sort algorithm as a func
 
