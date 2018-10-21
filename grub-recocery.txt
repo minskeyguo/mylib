@@ -1,4 +1,6 @@
 
+# how to re-install grub 
+
 sudo mount /dev/sdXY /mnt   # rootfs of ubuntu
 
 sudo mount --bind /dev /mnt/dev &&
