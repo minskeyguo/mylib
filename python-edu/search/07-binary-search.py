@@ -28,8 +28,8 @@ def binary_search(key):
     return -1
 
 
-ret = binary_search(4)
-print("position=%d, value=%d" %(ret,nums[ret]))
+if __name__ == "__main__":
+    ret = binary_search(4)
+    print("position=%d, value=%d" %(ret,nums[ret]))
 
-# pratice:  implement the sort algorithm as a func
 
