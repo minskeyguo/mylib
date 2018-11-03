@@ -9,6 +9,7 @@ if len(sys.argv) > 1:
 else:
     FILE="qing-tong-kui-hua-gbk.txt"
 
+# gb18303, gbk, gb2312, 
 fp = codecs.open(FILE, 'r', 'gb18030')
 texts = fp.read()
 fp.close()
