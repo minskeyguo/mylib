@@ -1,0 +1,42 @@
+version: '2'
+
+#
+# create a 3-node zookeeper cluster via docker.
+#
+services:
+  zk1:
+    container_name: zk1
+    image: minskey/zookeeper:v1
+    working_dir: /usr/local/zookeeper/bin
+    environment:
+            ZOO_MY_ID: 1
+            ZOO_SERVERS: server.1=zk1:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888
+    ports:
+      - 3001:2181
+      - 3002:2888
+      - 3003:3888
+
+  zk2:
+    container_name: zk2
+    image: minskey/zookeeper:v1
+    working_dir: /usr/local/zookeeper/bin
+    environment:
+            ZOO_MY_ID: 2
+            ZOO_SERVERS: server.1=zk1:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888
+    ports:
+      - 4001:2181
+      - 4002:2888
+      - 4003:3888
+
+  zk3:
+    container_name: zk3
+    image: minskey/zookeeper:v1
+    working_dir: /usr/local/zookeeper/bin
+    environment:
+            ZOO_MY_ID: 3
+            ZOO_SERVERS: server.1=zk1:2888:3888 server.2=zk2:2888:3888 server.3=zk3:2888:3888
+    ports:
+      - 5001:2181
+      - 5002:2888
+      - 5003:3888
+
