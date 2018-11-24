@@ -2,8 +2,9 @@
 
 URL_ZK="https://mirrors.tuna.tsinghua.edu.cn/apache/zookeeper/current/"
 
-TMP_OUT=./tmp
+
 PWD=`pwd`
+TMP_OUT=./tmp
 
 # Download the latest zookeeper tarball release from URL_ZK #
 function download_zookeeper() {
@@ -57,18 +58,15 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 
 CMD ["zkServer.sh", "start-foreground"]
 ENTRYPOINT [ "/docker-entrypoint.sh"]
-
 EOF
-
-
 }
 
 
 mkdir -p $TMP_OUT
+cp docker-entrypoint.sh $TMP_OUT/
 
-download_zookeeper
+# download_zookeeper
 
 create_dockerfile
-cp docker-entrypoint.sh $TMP_OUT/
 
 docker build  -t minskey/zookeeper -f $TMP_OUT/Dockerfile .

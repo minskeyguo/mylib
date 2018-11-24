@@ -6,7 +6,7 @@ version: '2'
 services:
   zk1:
     container_name: zk1
-    image: minskey/zookeeper:v1
+    image: minskey/zookeeper
     working_dir: /usr/local/zookeeper/bin
     environment:
             ZOO_MY_ID: 1
@@ -18,7 +18,7 @@ services:
 
   zk2:
     container_name: zk2
-    image: minskey/zookeeper:v1
+    image: minskey/zookeeper
     working_dir: /usr/local/zookeeper/bin
     environment:
             ZOO_MY_ID: 2
@@ -30,7 +30,7 @@ services:
 
   zk3:
     container_name: zk3
-    image: minskey/zookeeper:v1
+    image: minskey/zookeeper
     working_dir: /usr/local/zookeeper/bin
     environment:
             ZOO_MY_ID: 3
