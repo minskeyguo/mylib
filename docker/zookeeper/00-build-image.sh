@@ -66,7 +66,7 @@ EOF
 
 mkdir -p $TMP_OUT
 
-# download_zookeeper
+download_zookeeper
 
 create_dockerfile
 cp docker-entrypoint.sh $TMP_OUT/
