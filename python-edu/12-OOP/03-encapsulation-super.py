@@ -15,33 +15,39 @@
 class People:
 
     def __init__(self, name="", gender="x"):
-        self.__name = name
+        self._name = name
         self.__gender = gender
 
     def info(self):
-        print("%s's age is : %s" %(self.__name, self.__gender))
+        print("gender is : %s" %(self._name))
+
 
 
 class Student(People):
 
-    def __init__(self, name="", gender="x", stuID=0):
+    def __init__(self, n="", g="x", stuID=0):
         #
         # self.__name 定义在Student的成员变量，而不是People内. 造成People中
         # __name, __gender没有初始化，为解决这个问题，应改为：
         #
-        #     super(Student, self).__init__(name, gender)
+        super(Student, self).__init__(n, g)
         #
         #  把getName(self)的定义移动到People
-        self.__name = name
-        self.__gender = gender
+ #       self.__name = name
+ #       self.__gender = gender
         self.__stuID = stuID
 
-    def getName(self):
-        return self.__name
 
+    def getName(self):
+        return self._name
 
 s1 = Student("ling", "female", 13)
 print(s1.getName())
 
 s1.info()
+
+# s2 = People("dudu", "female")
+# s2.info()
+
+
 

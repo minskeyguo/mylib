@@ -34,7 +34,6 @@ class Foo(People):
     pass
 
 
-
 print("\n==========================")
 s1 = Student("ling", "female", 13)
 s1.info()

@@ -65,8 +65,10 @@ if __name__ == "__main__":
     print('\nUsing "del s1" to delete s1')
     del s1
 
+    s5 = Student()
+
     print("\n========================")
-    s2 = Student("dudu", 3)  #创建实例
+    s2 = Student("dudu", 2)  #创建实例
     s2.talk()
     Student.talk(s2)
 

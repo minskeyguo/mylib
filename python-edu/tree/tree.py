@@ -39,7 +39,7 @@ class Tree(object):
         print(node.value, end=" ")
         self.middle_order(node.right)
 
-    def front_non_recusive(self, node):
+    def front_print(self, node):
         s = []
         n = node
         while s or n:
@@ -49,6 +49,8 @@ class Tree(object):
                 n = n.left
             n = s.pop()
             n = n.right
+
+
 
 t = Tree()
 for i in range(1,20):
@@ -60,5 +62,5 @@ for n in t.queue:
 print("\n")
 t.front_order(t.root)
 print("\n")
-t.front_non_recusive(t.root)
+t.middle_order(t.root)
 print("\n")

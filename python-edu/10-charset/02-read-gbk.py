@@ -13,7 +13,11 @@ else:
 fp = codecs.open(FILE, 'r', 'gb18030')
 texts = fp.read()
 fp.close()
+
+
 print(texts)
+f2 = open("asdfasdf.txt","w")
+
 
 
 

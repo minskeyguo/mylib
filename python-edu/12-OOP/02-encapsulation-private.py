@@ -16,13 +16,13 @@ class People:
 
     def __init__(self, name="", gender="x"):
         self.name = name
-        self.gender = gender
+        self.__gender = gender
 
     def info(self):
         print("%s's gender is %s" %(self.name, self.gender))
 
 def bad_func(s):
-    s.gender = "male XXXXXXXXXXXXXXXXXX"
+    s.__gender = "male XXXXXXXXXXXXXXXXXX"
 
 
 """
