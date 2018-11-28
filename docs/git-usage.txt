@@ -1,0 +1,20 @@
+
+1. format all patches for files until sha1
+
+   git format-patch --root sha1  -- file1 file2 file3
+
+  for exmaple, for all patches until HEAD:
+   git format-patch --root HEAD  -- file1 file2 file3
+
+
+2. format all patches not earlier than sha1
+
+    git format-patch sha1 -- file1 file2
+
+
+
+3.   NUM=1
+     for i in `cat commits.txt`; do
+          git format-patch --start-number=$NUM "$c^1".."$c" -o patches
+          let NUM=NUM+1
+     done

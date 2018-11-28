@@ -1,0 +1,4 @@
+# allow start x11 in docker
+# xhost +
+docker create -it -e DISPLAY=:0 -v /tmp/.X11-unix:/tmp/.X11-unix  --net=host -v /work/vxworks/:/vxworks --name="vxwork_dev"  --privileged vxw-dev /bin/bash 
+
