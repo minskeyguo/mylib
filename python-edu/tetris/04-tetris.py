@@ -83,7 +83,7 @@ def draw_box(surf, color, row, colume, size):
     x_pix = X_MARGIN +  BOX_SIZE * colume
     y_pix = Y_MARGIN + BOX_SIZE * row
     pygame.draw.rect(surf, COLORS[color], (x_pix, y_pix, size, size))
-    pygame.draw.rect(surf, RED, (x_pix, y_pix, size, size), 2)
+    pygame.draw.rect(surf, GRAY, (x_pix, y_pix, size, size), 2)
 
 # define board as boxes of h rows X w colume
 def init_board(w, h):
