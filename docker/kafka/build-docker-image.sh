@@ -4,7 +4,9 @@
 # 1. download kafka from: http://mirrors.tuna.tsinghua.edu.cn/apache/kafka/2.1.0/kafka_2.12-2.1.0.tgz
 # 2. tar -xf kafka_2.12-2.1.0.tgz
 # 3. mv kafka_2.12-2.1.0.tgz kafka
-# 4. run this script
+# 4. rm kafka/config/server.properties 
+#    rm kafka/config/zookeeper.properties 
+# 5. run this script
 
 KAFKA_TOP=kafka
 
@@ -82,7 +84,7 @@ ENV KF_SOCKET_REQUEST_MAX_BYTES 102400
 ENV KF_ZK_CONN_TIMEOUT 6000
 ENV KF_LOG_RETENTION_HOURS 168
 ENV KF_LOG_DIRS /var/kafka/logs
-ENV KF_LISTENERS_PORT 9093
+ENV KF_LISTENERS_PORT 9092
 
 COPY docker-entrypoint-kf.sh /docker-entrypoint.sh
 
