@@ -1,0 +1,87 @@
+pip3 install pygame
+
+
+
+模块名 			功能
+pygame		 	就是我们在学的这个东西
+pygame.cdrom 		访问光驱
+pygame.cursors 		加载光标
+pygame.display 		访问显示设备
+pygame.draw 		绘制形状、线和点
+pygame.event 		管理事件
+pygame.font 		使用字体
+pygame.image 		加载和存储图片
+pygame.joystick 	使用游戏手柄或者 类似的东西
+pygame.key 		读取键盘按键
+pygame.mixer 		声音
+pygame.mouse 		鼠标
+pygame.movie 		播放视频
+pygame.music 		播放音频
+pygame.overlay 		访问高级视频叠加
+pygame.rect 		管理矩形区域
+pygame.sndarray		 操作声音数据
+pygame.sprite 		操作移动图像
+pygame.surface 		管理图像和屏幕
+pygame.surfarray 	管理点阵图像数据
+pygame.time 		管理时间和帧信息
+pygame.transform 	缩放和移动图像
+
+
+if pygame.font is None:
+	print"The font module is not available!"
+	exit()
+
+pygame object:
+Surface:   2D rectangle
+Color : (r, g, b, a)
+Rect: (x0, y0, width, height)
+Point: (x, y)
+Event:
+
+
+矩形、圆形、椭圆形、线条或单个的像素,通常都称为绘制图元(drawing primitives
+pygame.draw.polygon(surface, green, ((123, 0), (234,132), (269, 211), (77, 66)))
+pygame.draw.line(surface, red, (70, 200), (80,100), 20)
+pygame.draw.circle(surface, black, (30, 50), 15, 10)
+pygame.draw.ellipse(surface, black, (30, 50, 100, 60), 10)
+pygame.draw.rect(surface, blue, (30, 50, 100, 60))
+
+
+
+pygame.event.EventType, its type is between NOEVENT and NUMEVENTS. All user defined
+events can have the value of USEREVENT or higher.
+
+QUIT             none
+ACTIVEEVENT      gain, state
+KEYDOWN          unicode, key, mod
+KEYUP            key, mod
+MOUSEMOTION      pos, rel, buttons
+MOUSEBUTTONUP    pos, button
+MOUSEBUTTONDOWN  pos, button
+JOYAXISMOTION    joy, axis, value
+JOYBALLMOTION    joy, ball, rel
+JOYHATMOTION     joy, hat, value
+JOYBUTTONUP      joy, button
+JOYBUTTONDOWN    joy, button
+VIDEORESIZE      size, w, h
+VIDEOEXPOSE      none
+USEREVENT        code
+
+
+Pygame handles all its event messaging through an event queue. The routines
+in this module help you manage that event queue:
+pygame.event.pump       —       internally process pygame event handlers
+pygame.event.get        —       get events from the queue
+pygame.event.poll       —       get a single event from the queue
+pygame.event.wait       —       wait for a single event from the queue
+pygame.event.peek       —       test if event types are waiting on the queue
+pygame.event.clear      —       remove all events from the queue
+pygame.event.event_name —       get the string name from and event id
+pygame.event.set_blocked        —       control which events are allowed on the queue
+pygame.event.set_allowed        —       control which events are allowed on the queue
+pygame.event.get_blocked        —       test if a type of event is blocked from the queue
+pygame.event.set_grab   —       control the sharing of input devices with other applications
+pygame.event.get_grab   —       test if the program is sharing input devices
+pygame.event.post       —       place a new event on the queue
+pygame.event.Event      —       create a new event object
+pygame.event.EventType  —       pygame object for repr
