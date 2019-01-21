@@ -63,12 +63,22 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Plane Flight")
 
 all_sprites = pygame.sprite.Group()
+
+
+def func_c(r1, r2):
+    if r1.left > r2.right or r1.right < r2.left:
+        return False
+    if r1.top > r2.bottom or r1.bottom < r2.top:
+        return False
+    return True;
+
 mobs = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
-
+ms = []
 for i in range(8):
     m = Mob()
+    ms.append(m)
     all_sprites.add(m)
     mobs.add(m)
 
@@ -82,9 +92,16 @@ while True:
             pygame.quit()
             sys.exit()
     screen.fill(BLACK)
+
     all_sprites.update()
+
+    for m in ms:
+        if func_c(m.rect, player.rect) == True:
+            print("hello, collide")
+
     all_sprites.draw(screen)
     pygame.display.flip()
+
 
 
 """
