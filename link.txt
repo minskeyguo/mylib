@@ -1,3 +1,4 @@
+https://raygun.com/blog/learn-python-using-gamedev/
 
 https://github.com/sdksdk0/BookStore
 

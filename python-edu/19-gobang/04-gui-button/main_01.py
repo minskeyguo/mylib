@@ -6,7 +6,8 @@ from pygame import *
 from enum import Enum
 from gobang_01 import *
 
-import button
+import button, inputbox
+
 
 FPS = 60
 
@@ -28,9 +29,18 @@ X_OFFSET, Y_OFFSET = 100, 100
 GAME_STATE_INIT = 0
 GAME_STATE_START = 1
 GAME_STATE_END = 2
+GAME_STATE_SERVER = 3
+GAME_STATE_CLIENT = 3
 
 def game_start():
     app.game_state = GAME_STATE_START
+
+def start_server():
+    app.game_state = GAME_STATE_SERVER
+
+def connect_to_server():
+    app.game_state = GAME_STATE_CLIENT
+    app.show_inputbox()
 
 class Application(object):
     def __init__(self, gobang):
@@ -58,8 +68,9 @@ class Application(object):
         self.winner = GRID_STATE_EMPTY
 
         self.start_button = button.Button(self.screen, callback=game_start, caption="Start Local Game", x=680, y=120, width=200, height=60)
-        self.server_button = button.Button(self.screen, caption="Start Game As Server", x=680, y=240, width=200, height=60)
-        self.conn_button = button.Button(self.screen, caption="Connect to Game Server", x=680, y=360, width=200, height=60)
+        self.server_button = button.Button(self.screen, callback=start_server, caption="Start Game As Server", x=680, y=240, width=200, height=60)
+        self.conn_button = button.Button(self.screen, callback=connect_to_server, caption="Connect to Game Server", x=680, y=360, width=200, height=60)
+        self.conn_inputbox = None
 
         self.game_state = GAME_STATE_INIT
 
@@ -135,6 +146,9 @@ class Application(object):
         self.start_button.draw()
         self.server_button.draw()
         self.conn_button.draw()
+        if self.conn_inputbox is not None:
+            self.conn_inputbox.draw()
+
         if self.winner != GRID_STATE_EMPTY:
             s =  "White Win" if self.winner == GRID_STATE_WHITE  else "Black Win"
             self.draw_text(s, X_OFFSET + BOARD_WIDTH // 2, Y_OFFSET + BOARD_HEIGHT // 2, 64)
@@ -149,10 +163,18 @@ class Application(object):
                 self.one_move_inprocess()
             elif event.type == MOUSEBUTTONUP:
                 self.one_move_end()
+            return
         if self.game_state == GAME_STATE_INIT:
             self.start_button.handleEvent(event)
-            if self.game_state == GAME_STATE_INIT:
+        if self.game_state == GAME_STATE_INIT:
+            self.server_button.handleEvent(event)
+        if self.game_state == GAME_STATE_INIT:
+            self.conn_button.handleEvent(event)
+        if self.game_state == GAME_STATE_CLIENT:
+            self.conn_inputbox.handleEvent(event)
 
+    def show_inputbox(self):
+        self.conn_inputbox = inputbox.Inputbox(app.screen, active=True, x=690, y=430, width=120, height=40)
 
 if __name__ == '__main__':
     clock = pygame.time.Clock()

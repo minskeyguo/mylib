@@ -1,0 +1,280 @@
+"
+set nocompatible              " be iMproved, required
+set mouse=v
+
+filetype off                  " required
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+
+" Keep Plugin commands between vundle#begin/end.
+" alternatively, pass a path where Vundle should install plugins
+" call vundle#begin('~/some/path/here')
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" git wrapper
+Plugin 'tpope/vim-fugitive'
+
+" plugin from http://vim-scripts.org/vim/scripts.html
+
+" syntax checking, based on external tools
+" Plugin 'vim-syntastic/syntastic'
+
+" sytax highlight for ASL
+Plugin 'martinlroth/vim-acpi-asl'
+
+" Plugin 'fatih/vim-go'
+Plugin 'fatih/vim-go', {'do': ':GoUpdateBinaries'}
+
+Plugin 'ctrlpvim/ctrlp.vim'
+
+Plugin 'godlygeek/tabular'
+
+Plugin 'plasticboy/vim-markdown'
+
+" The sparkup vim script is in a subdirectory called vim.
+" Pass the path to set the runtimepath properly.
+" writing html
+Plugin 'rstacruz/sparkup', {'rtp': 'vim/'}
+
+" Install L9 and avoid a Naming conflict if you've already installed a
+" different version somewhere else.
+" Plugin 'ascenator/L9', {'name': 'newL9'}
+
+" ctags tags explorer
+Plugin 'majutsushi/tagbar'
+
+" file explorer
+Plugin 'scrooloose/nerdtree'
+
+" autocomplete
+Plugin 'Valloric/YouCompleteMe'
+
+Plugin 'fholgado/minibufexpl.vim'
+
+Plugin 'vim-scripts/OmniCppComplete'
+
+" All of your Plugins must be added before the following line
+call vundle#end()            " required
+
+filetype on    " enable file type detection
+filetype indent on 	" use different indent based on file type
+filetype plugin on 		" enable plugin
+filetype plugin indent on    " required
+
+set encoding=utf-8
+set fileencodings=utf-8,gbk,gb18030,gb2312
+
+set hidden
+set nowrap
+set showmatch
+set number
+set autoindent
+set shiftwidth=4   " space# for auto-ident
+set shiftround    " multiple shiftwidth when identing with < or >
+set smarttab    " insert tab at the begining of line based on shiftwidth
+set tabstop=4
+set hlsearch
+set incsearch
+set noerrorbells    "disable error beep
+"set visualbell   "disable beep
+set noswapfile  
+set nobackup
+
+"Use F2 to paste multi-line text (coped by mouse) to avoid cascading indents because of auto-ident
+set pastetoggle=<F2>
+
+syntax enable
+syntax on
+
+"
+" Brief help
+" :PluginList       - lists configured plugins
+" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"
+" see :h vundle for more details or wiki for FAQ
+" Put your non-Plugin stuff after this line
+
+" move window faster
+nnoremap <C-k>  <C-w>k    
+nnoremap <C-j>  <C-w>j
+nnoremap <C-h>  <C-w>h
+nnoremap <C-l>  <C-w>l
+
+" return normal mode from insert mode quickly
+inoremap jk <ESC>
+
+" enable w!! to write with sudo if forgot to sudo before opening a file
+cmap w!! w !sudo tee % >/dev/null
+
+" minibuffer
+let g:miniBufExplMapWindowNavVim = 1 
+let g:miniBufExplMapWindowNavArrows = 1 
+let g:miniBufExplMapCTabSwitchBufs = 1 
+let g:miniBufExplModSelTarget = 1 
+
+function! Buf_total_num()
+    return len(filter(range(1, bufnr('$')), 'buflisted(v:val)'))
+endfunction
+
+set laststatus=2
+set statusline=%<%1*[B-%n]%*
+set statusline+=%3*\ %h%m%r%w                     " status flags
+set statusline+=%4*\ %F\ %*
+set statusline+=%5*\ %{exists('g:loaded_fugitive')?fugitive#statusline():''}%*
+set statusline+=%6*\ %m%r%y\ %*
+set statusline+=%7*0x%-8B                       " character value
+set statusline+=%8*\ [%l:%c\ %L]
+
+" default bg for statusline is 236 in space-vim-dark
+hi User1 cterm=bold ctermfg=232 ctermbg=179
+hi User2 cterm=None ctermfg=214 ctermbg=242
+hi User3 cterm=None ctermfg=251 ctermbg=240
+hi User4 cterm=bold ctermfg=169 ctermbg=239
+hi User5 cterm=None ctermfg=208 ctermbg=238
+hi User6 cterm=None ctermfg=246 ctermbg=237
+hi User7 cterm=None ctermfg=250 ctermbg=238
+hi User8 cterm=None ctermfg=249 ctermbg=240
+
+
+" cursor returns to the line when we closed the file last time
+autocmd BufReadPost *
+	\ if line("'\"") > 1 && line("'\"") <= line("$") |
+	\ exe "normal! g`\"" |
+	\ endif
+
+" show tags based on ctags https://github.com/majutsushi/tagbar.git
+map <F8> :TagbarToggle<CR>
+
+" File system explorer based on tagbar https://github.com/scrooloose/nerdtree.git
+map <F9> :NERDTreeToggle<CR>
+
+" syntax checking
+" set statusline+=%#warningmsg#
+" set statusline+=%{SyntasticStatuslineFlag()}
+" set statusline+=%*
+let g:syntastic_always_populate_loc_list = 1
+let g:syntastic_auto_loc_list = 1
+let g:syntastic_check_on_open = 0
+let g:syntastic_check_on_wq = 0
+
+
+"Go lang " https://github.com/fatih/vim-go.git
+let g:go_disable_autoinstall=0
+let g:go_highlight_functions = 1
+let g:go_highlight_methods = 1
+let g:go_highlight_structs = 1
+let g:go_highlight_operators = 1
+let g:go_highlight_build_constraints = 1
+
+"gotags: go get -u github.com/jstemmer/gotags
+let g:tagbar_type_go = {
+    \ 'ctagstype' : 'go',
+    \ 'kinds'     : [
+        \ 'p:package',
+        \ 'i:imports:1',
+        \ 'c:constants',
+        \ 'v:variables',
+        \ 't:types',
+        \ 'n:interfaces',
+        \ 'w:fields',
+        \ 'e:embedded',
+        \ 'm:methods',
+        \ 'r:constructor',
+        \ 'f:functions'
+    \ ],
+    \ 'sro' : '.',
+    \ 'kind2scope' : {
+        \ 't' : 'ctype',
+        \ 'n' : 'ntype'
+    \ },
+    \ 'scope2kind' : {
+        \ 'ctype' : 't',
+        \ 'ntype' : 'n'
+    \ },
+    \ 'ctagsbin'  : 'gotags',
+    \ 'ctagsargs' : '-sort -silent'
+\ }
+
+
+
+if has("cscope")
+	set csprg=/usr/bin/cscope
+	set cscopetag   "user cscope and ctag
+	set csto=0   " check cscope first, the ctag
+    set cscopeverbose    " show msg when any other cscope db added
+	set cst
+	set nocsverb
+	set cscopequickfix=s-,c-,d-,i-,t-,e-,a-
+
+	" add any database in current directory
+	if filereadable("cscope.out")
+		cs add cscope.out 
+	" else add database pointed to by environment 
+	elseif $CSCOPE_DB != ""
+		cs add $CSCOPE_DB
+	endif
+	set csverb
+
+	" map <C-]> :cs find 3 <C-R>=expand("<cword>")<CR><CR>
+	"	map <C-\> :cs find 3 <C-R>=expand("<cword>")<CR><CR>
+
+	nmap <C-/>s :cs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-/>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+	nmap <C-/>c :cs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-/>t :cs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-/>e :cs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-/>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+	nmap <C-/>i :cs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
+	nmap <C-/>d :cs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	 
+	nmap <C-Space>s :scs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space>g :scs find g <C-R>=expand("<cword>")<CR><CR>
+	nmap <C-Space>c :scs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space>t :scs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space>e :scs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space>f :scs find f <C-R>=expand("<cfile>")<CR><CR>
+	nmap <C-Space>i :scs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space>d :scs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	 
+	nmap <C-Space><C-Space>s :vert scs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>g :vert scs find g <C-R>=expand("<cword>")<CR><CR>
+	nmap <C-Space><C-Space>c :vert scs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>t :vert scs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>e :vert scs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>f :vert scs find f <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>i :vert scs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
+	nmap <C-Space><C-Space>d :vert scs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+endif
+ 
+" for MarkDown plugin
+nmap ml <Plug>MarkSet
+nmap md <Plug>MarkClear
+nmap mn <Plug>MarkSearchAnyNext
+nmap mp <Plug>MarkSearchAnyPrev
+nmap mf <Plug>MarkSearchCurrentNext
+nmap mb <Plug>MarkSearchCurrentPrev
+
+map <C-F12> :!ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<CR><CR>:TlistUpdate<CR>
+set tags=tags
+set tags+=./tags
+
+autocmd BufNewFile,BufRead *.py 
+	\ set shiftwidth=4 
+	\ textwidth=79 
+	\ autoindent 
+	\ expandtab
+	\ tabstop=4
+	\ softtabstop=4
+
+
+" force to use vim
+map <up> <nop>
+map <down> <nop>
+map <left> <nop>
+map <right> <nop>

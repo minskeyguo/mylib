@@ -29,7 +29,6 @@ class Inputbox(object):
                 "id": None,
                 "fgcolor": BLACK,
                 "bgcolor": LIGHT_GRAY,
-                "font": DEFAULT_FONT,
                 "active": False,
                 "visable": True,
                 "x": 0,
@@ -37,6 +36,8 @@ class Inputbox(object):
                 "width": 200,
                 "height": 30,
                 "callback": None,
+                "font_name": None,
+                "font_size": 32,
                 }
         for prop in kwargs:
             if prop in properties:
@@ -44,6 +45,7 @@ class Inputbox(object):
             else:
                 raise ValueError(":".join(("Invalid properties", str(prop))))
         self.__dict__.update(properties)
+        self.font = pygame.font.SysFont(self.font_name, self.font_size)
 
     def __update(self):
         new = "".join(self._buffer)
