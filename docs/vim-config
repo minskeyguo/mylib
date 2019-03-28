@@ -118,10 +118,6 @@ let g:miniBufExplMapWindowNavArrows = 1
 let g:miniBufExplMapCTabSwitchBufs = 1 
 let g:miniBufExplModSelTarget = 1 
 
-function! Buf_total_num()
-    return len(filter(range(1, bufnr('$')), 'buflisted(v:val)'))
-endfunction
-
 set laststatus=2
 set statusline=%<%1*[B-%n]%*
 set statusline+=%3*\ %h%m%r%w                     " status flags
@@ -142,7 +138,7 @@ hi User7 cterm=None ctermfg=250 ctermbg=238
 hi User8 cterm=None ctermfg=249 ctermbg=240
 
 
-" cursor returns to the line when we closed the file last time
+" cursor returns to the line where the cursor is located when we closed the file last time
 autocmd BufReadPost *
 	\ if line("'\"") > 1 && line("'\"") <= line("$") |
 	\ exe "normal! g`\"" |
@@ -154,15 +150,10 @@ map <F8> :TagbarToggle<CR>
 " File system explorer based on tagbar https://github.com/scrooloose/nerdtree.git
 map <F9> :NERDTreeToggle<CR>
 
-" syntax checking
-" set statusline+=%#warningmsg#
-" set statusline+=%{SyntasticStatuslineFlag()}
-" set statusline+=%*
 let g:syntastic_always_populate_loc_list = 1
 let g:syntastic_auto_loc_list = 1
 let g:syntastic_check_on_open = 0
 let g:syntastic_check_on_wq = 0
-
 
 "Go lang " https://github.com/fatih/vim-go.git
 let g:go_disable_autoinstall=0
@@ -202,10 +193,23 @@ let g:tagbar_type_go = {
 \ }
 
 
+" search cscope.out and add it into dbase
+function! LoadCscope()
+	let db = findfile("cscope.out", ".;")
+	if (!empty(db))
+		let path = strpart(db, 0, match(db, "/cscope.out$"))
+		set nocscopeverbose " suppress 'duplicate connection' error
+		exe "cs add " . db . " " . path
+		set cscopeverbose
+	" else add the database pointed to by environment variable 
+	elseif $CSCOPE_DB != "" 
+		cs add $CSCOPE_DB
+	endif
+endfunction
 
 if has("cscope")
 	set csprg=/usr/bin/cscope
-	set cscopetag   "user cscope and ctag
+	set cscopetag  cscopeverbose  "user cscope and ctag
 	set csto=0   " check cscope first, the ctag
     set cscopeverbose    " show msg when any other cscope db added
 	set cst
@@ -218,38 +222,22 @@ if has("cscope")
 	" else add database pointed to by environment 
 	elseif $CSCOPE_DB != ""
 		cs add $CSCOPE_DB
+	else
+    	au BufEnter *.[chS] call LoadCscope()
 	endif
+
 	set csverb
 
-	" map <C-]> :cs find 3 <C-R>=expand("<cword>")<CR><CR>
-	"	map <C-\> :cs find 3 <C-R>=expand("<cword>")<CR><CR>
-
-	nmap <C-/>s :cs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-/>g :cs find g <C-R>=expand("<cword>")<CR><CR>
-	nmap <C-/>c :cs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-/>t :cs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-/>e :cs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-/>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-	nmap <C-/>i :cs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
-	nmap <C-/>d :cs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	 
-	nmap <C-Space>s :scs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space>g :scs find g <C-R>=expand("<cword>")<CR><CR>
-	nmap <C-Space>c :scs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space>t :scs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space>e :scs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space>f :scs find f <C-R>=expand("<cfile>")<CR><CR>
-	nmap <C-Space>i :scs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space>d :scs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	 
-	nmap <C-Space><C-Space>s :vert scs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>g :vert scs find g <C-R>=expand("<cword>")<CR><CR>
-	nmap <C-Space><C-Space>c :vert scs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>t :vert scs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>e :vert scs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>f :vert scs find f <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>i :vert scs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
-	nmap <C-Space><C-Space>d :vert scs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	map <C-\> :cs find 3 <C-R>=expand("<cword>")<CR><CR>
+	nmap <C-A>a :cs find a <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>c :cs find c <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>d :cs find d <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>e :cs find e <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
+	nmap <C-A>g :cs find g <C-R>=expand("<cword>")<CR><CR>
+	nmap <C-A>i :cs find i <C-R>=expand("<cfile>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>s :cs find s <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
+	nmap <C-A>t :cs find t <C-R>=expand("<cword>")<CR><CR>:copen<CR><CR>
 endif
  
 " for MarkDown plugin
@@ -266,11 +254,37 @@ set tags+=./tags
 
 autocmd BufNewFile,BufRead *.py 
 	\ set shiftwidth=4 
-	\ textwidth=79 
 	\ autoindent 
 	\ expandtab
 	\ tabstop=4
 	\ softtabstop=4
+
+" syntax highlight for device tree file
+function! DtsSyntaxOn()
+	syntax region dtsComment        start="/\*"  end="\*/"
+	syntax match  dtsReference      "&[[:alpha:][:digit:]_]\+"
+	syntax region dtsBinaryProperty start="\[" end="\]" 
+	syntax match  dtsStringProperty "\".*\""
+	syntax match  dtsKeyword        "/.\{-1,\}/"
+	syntax match  dtsLabel          "^[[:space:]]*[[:alpha:][:digit:]_]\+:"
+	syntax match  dtsNode           /[[:alpha:][:digit:]-_]\+\(@[0-9a-fA-F]\+\|\)[[:space:]]*{/he=e-1
+	syntax region dtsCellProperty   start="<" end=">" contains=dtsReference,dtsBinaryProperty,dtsStringProperty,dtsComment
+	syntax region dtsCommentInner   start="/\*"  end="\*/"
+	syntax match  dtsCommentLine    "//.*$"
+
+	hi def link dtsCellProperty     Number
+	hi def link dtsBinaryProperty   Number
+	hi def link dtsStringProperty   String
+	hi def link dtsKeyword          Include
+	hi def link dtsLabel            Label
+	hi def link dtsNode             Structure
+	hi def link dtsReference        Macro
+	hi def link dtsComment          Comment
+	hi def link dtsCommentInner     Comment 
+	hi def link dtsCommentLine      Comment
+endfunction
+
+autocmd BufEnter *.dts call DtsSyntaxOn()
 
 
 " force to use vim
