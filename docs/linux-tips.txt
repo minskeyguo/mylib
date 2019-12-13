@@ -1,4 +1,7 @@
 
+1. recover the grub 
+=================
+
 # how to re-install grub 
 
 sudo mount /dev/sdXY /mnt   # rootfs of ubuntu
@@ -28,4 +31,19 @@ sudo umount /mnt/dev/pts
 sudo umount /mnt/dev
 sudo umount /mnt
 Shut down and turn your computer back on, and you will be met with the default Grub2 screen.
+
+
+2. fonts for linux 
+=================
+cp /usr/share/fonts/
+mkfontscale
+mkfontdir
+fc-cache
+fc-list :lang=zh
+
+3. objdump flat binary
+=====================
+objdump -D -Mintel,i8086 -b binary -m i386 mbr.bin
+objdump -D -Mintel,i386 -b binary -m i386 foo.bin    # for 32-bit code
+objdump -D -Mintel,x86-64 -b binary -m i386 foo.bin  # for 64-bit code
 
